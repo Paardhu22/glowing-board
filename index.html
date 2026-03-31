@@ -38,6 +38,11 @@
       background: #FF3131;
       box-shadow: 0 0 15px #FF3131;
     }
+
+    #indicator.erasing {
+      background: #FFFFFF;
+      box-shadow: 0 0 15px #FFFFFF;
+    }
     
     .btn {
       margin-top: 10px;
@@ -66,6 +71,7 @@
   <div id="ui">
     <div><span id="indicator"></span> <span id="status">READY</span></div>
     <div class="shortcut">Hold <span style="color: #FF3131; font-weight: bold;">CTRL</span> to Draw</div>
+    <div class="shortcut">Hold <span style="color: #FFFFFF; font-weight: bold;">SHIFT</span> to Erase</div>
     <button class="btn" onclick="clearCanvas()">Clear Canvas</button>
     <div class="shortcut">Shortcut: Spacebar</div>
   </div>
@@ -78,6 +84,7 @@
     var arr = []; // Completed strokes
     var cur = []; // Current stroke
     var isDrawing = false;
+    var isErasing = false;
     var drawTransition = false;
     var sx = null;
     var sy = null;
@@ -91,7 +98,13 @@
       if (e.key == 'Control') {
         isDrawing = true;
         document.getElementById('indicator').classList.add('active');
+        document.getElementById('indicator').classList.remove('erasing');
         document.getElementById('status').innerText = 'DRAWING';
+      }
+      if (e.key == 'Shift') {
+        isErasing = true;
+        document.getElementById('indicator').classList.add('erasing');
+        document.getElementById('status').innerText = 'ERASING';
       }
       if (e.code == 'Space') clearCanvas();
     }
@@ -100,7 +113,12 @@
       if (e.key == 'Control') {
         isDrawing = false;
         document.getElementById('indicator').classList.remove('active');
-        document.getElementById('status').innerText = 'READY';
+        document.getElementById('status').innerText = isErasing ? 'ERASING' : 'READY';
+      }
+      if (e.key == 'Shift') {
+        isErasing = false;
+        document.getElementById('indicator').classList.remove('erasing');
+        document.getElementById('status').innerText = isDrawing ? 'DRAWING' : 'READY';
       }
     }
 
@@ -148,24 +166,52 @@
           sx = rx; 
           sy = ry;
         } else {
-          sx += (rx - sx) * 0.35; // Smoother tracking (from 0.45 down to 0.35)
+          sx += (rx - sx) * 0.35; // Smoother tracking
           sy += (ry - sy) * 0.35;
+        }
+
+        // Handle Eraser Logic (remove points near cursor)
+        if (isErasing) {
+          var eraserSize = 35;
+          for (var i = arr.length - 1; i >= 0; i--) {
+            for (var j = arr[i].length - 1; j >= 0; j--) {
+              var dx = arr[i][j].x - sx;
+              var dy = arr[i][j].y - sy;
+              if (Math.sqrt(dx*dx + dy*dy) < eraserSize) {
+                // Split the stroke to avoid "jumpy" lines
+                var after = arr[i].splice(j + 1);
+                if (after.length > 0) arr.splice(i + 1, 0, after);
+                arr[i].pop(); // Remove the target point
+                if (arr[i].length == 0) arr.splice(i, 1);
+              }
+            }
+          }
         }
 
         // Draw Cursor
         ctx.beginPath();
-        ctx.arc(sx, sy, 8, 0, 2 * Math.PI);
-        if (isDrawing) { 
-          ctx.fillStyle = '#FFFFFF'; 
-          ctx.shadowBlur = 25;
-        } else { 
-          ctx.fillStyle = 'rgba(255, 49, 49, 0.6)'; 
-          ctx.shadowBlur = 10;
+        if (isErasing) {
+            ctx.arc(sx, sy, 25, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#FFFFFF';
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        } else {
+            ctx.arc(sx, sy, 8, 0, 2 * Math.PI);
+            if (isDrawing) { 
+                ctx.fillStyle = '#FFFFFF'; 
+                ctx.shadowBlur = 25;
+            } else { 
+                ctx.fillStyle = 'rgba(255, 49, 49, 0.6)'; 
+                ctx.shadowBlur = 10;
+            }
         }
         ctx.fill();
 
         // Handle Drawing Logic
-        if (isDrawing) {
+        if (isDrawing && !isErasing) {
           if (!drawTransition) {
             drawTransition = true;
             cur = [];
@@ -190,7 +236,7 @@
     h.setOptions({ 
       maxNumHands: 1, 
       modelComplexity: 1, 
-      minDetectionConfidence: 0.6, // Slightly higher for better stability
+      minDetectionConfidence: 0.6, 
       minTrackingConfidence: 0.6 
     });
     
