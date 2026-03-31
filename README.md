@@ -2,10 +2,9 @@
 
 ### how to use it:
 1. Allow camera access.
-2. **Hold the CTRL key** (Control) on your keyboard to start drawing ink.
-3. Let go of **CTRL** to move your hand to the next letter or position.
-4. Hit the **Spacebar** or click the **"Clear Canvas"** button if you want to start over.
+2. **Hold the CTRL key** (Control) to start drawing ink.
+3. **Hold the SHIFT key** to erase parts of your drawing.
+4. Let go of keys to move your hand freely.
+5. Hit the **Spacebar** or click the **"Clear Canvas"** button to clear everything.
 
-This app uses MediaPipe Hand Tracking to turn your finger into a glowing neon pen.
-
-Feel free to mess around with the colors or the smoothing math in the code.
+This app uses MediaPipe Hand Tracking to turn your finger into a glowing neon pen with a real-time eraser.
